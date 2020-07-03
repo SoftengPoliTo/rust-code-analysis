@@ -3,8 +3,10 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Nodes - Rust-Code-Analysis Documentation</title>
+        <title></title>
         
+        
+        <base href="/">
         
 
 
@@ -17,23 +19,23 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
-        <link rel="icon" href="../favicon.svg">
-        <link rel="shortcut icon" href="../favicon.png">
-        <link rel="stylesheet" href="../css/variables.css">
-        <link rel="stylesheet" href="../css/general.css">
-        <link rel="stylesheet" href="../css/chrome.css">
-        <link rel="stylesheet" href="../css/print.css" media="print">
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
         
-        <link rel="stylesheet" href="../fonts/fonts.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
         
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
         
@@ -46,7 +48,7 @@
     <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
-            var path_to_root = "../";
+            var path_to_root = "";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -92,7 +94,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> rust-code-analysis</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.1.</strong> Supported Languages</a></li></ol></li><li class="chapter-item expanded "><a href="../commands/index.html"><strong aria-hidden="true">2.</strong> Commands</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../commands/metrics.html"><strong aria-hidden="true">2.1.</strong> Metrics</a></li><li class="chapter-item expanded "><a href="../commands/nodes.html" class="active"><strong aria-hidden="true">2.2.</strong> Nodes</a></li><li class="chapter-item expanded "><a href="../commands/rest.html"><strong aria-hidden="true">2.3.</strong> Rest API</a></li></ol></li><li class="chapter-item expanded "><a href="../developers/index.html"><strong aria-hidden="true">3.</strong> Developers Guide</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> rust-code-analysis</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.1.</strong> Supported Languages</a></li></ol></li><li class="chapter-item expanded "><a href="commands/index.html"><strong aria-hidden="true">2.</strong> Commands</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="commands/metrics.html"><strong aria-hidden="true">2.1.</strong> Metrics</a></li><li class="chapter-item expanded "><a href="commands/nodes.html"><strong aria-hidden="true">2.2.</strong> Nodes</a></li><li class="chapter-item expanded "><a href="commands/rest.html"><strong aria-hidden="true">2.3.</strong> Rest API</a></li></ol></li><li class="chapter-item expanded "><a href="developers/index.html"><strong aria-hidden="true">3.</strong> Developers Guide</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -127,7 +129,7 @@
                     <h1 class="menu-title">Rust-Code-Analysis Documentation</h1>
 
                     <div class="right-buttons">
-                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
@@ -158,54 +160,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#nodes" id="nodes">Nodes</a></h1>
-<p><strong>rust-code-analysis-cli</strong> allows to extract some information from the nodes
-which compose the <em>Abstract Syntax Tree (AST)</em> of a source code.</p>
-<h2><a class="header" href="#find-errors" id="find-errors">Find Errors</a></h2>
-<p>To know if there are some syntactic errors in your code, run:</p>
-<pre><code class="language-console">rust-code-analysis-cli -p /path/to/your/file/or/directory -I &quot;*.ext&quot; -f -error
-</code></pre>
-<p>The <code>-p</code> option represents the path to a file or a directory. If a directory is
-passed as input, <strong>rust-code-analysis-cli</strong> computes the metrics for each file
-contained in it.
-The <code>-I</code> option is a glob filter used to consider only the files written in
-the language defined by the extension of the file.
-The <code>-f</code> option instead searches all nodes of a certain type.
-In the case above, we are looking for all the erroneous nodes present in the
-code.</p>
-<h2><a class="header" href="#count-errors" id="count-errors">Count Errors</a></h2>
-<p>It is also possible to count the number of nodes of a certain type using the
-<code>--count</code> option:</p>
-<pre><code class="language-console">rust-code-analysis-cli -p /path/to/your/file/or/directory -I &quot;*.ext&quot; --count -error
-</code></pre>
-<h2><a class="header" href="#print-ast" id="print-ast">Print AST</a></h2>
-<p>If you want to print the AST of a source code, run the following command:</p>
-<pre><code class="language-console">rust-code-analysis-cli -p /path/to/your/file/or/directory -d
-</code></pre>
-<p>The <code>-d</code> option prints the entire AST on the shell.</p>
-<h2><a class="header" href="#code-splitting" id="code-splitting">Code Splitting</a></h2>
-<p>Commands can be run on a single portion of the code using the <code>--ls</code>
-and <code>--le</code> options. The former represents the starting line of the code to be
-considered, while the latter its ending line.
-For example, if we want to print the AST of a single function which starts at
-line 5 and ends at line 10, we need to launch this command:</p>
-<pre><code class="language-console">rust-code-analysis-cli -p /path/to/your/file/or/directory -d --ls 5 --le 10
-</code></pre>
+                        <h1><a class="header" href="#document-not-found-404" id="document-not-found-404">Document not found (404)</a></h1>
+<p>This URL is invalid, sorry. Please use the navigation bar or search to continue.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="../commands/metrics.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                                <i class="fa fa-angle-left"></i>
-                            </a>
-                        
 
-                        
-                            <a rel="next" href="../commands/rest.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
                         
 
                         <div style="clear: both"></div>
@@ -215,15 +178,7 @@ line 5 and ends at line 10, we need to launch this command:</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a rel="prev" href="../commands/metrics.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                        <i class="fa fa-angle-left"></i>
-                    </a>
-                
 
-                
-                    <a rel="next" href="../commands/rest.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
                 
             </nav>
 
@@ -244,14 +199,14 @@ line 5 and ends at line 10, we need to launch this command:</p>
         
 
         
-        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
         
 
-        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
         <!-- Custom JS scripts -->
         
