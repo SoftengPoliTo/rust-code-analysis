@@ -33,7 +33,7 @@ use crate::spaces::{CodeMetrics, FuncSpace};
 /// let parser = CppParser::new(source_as_vec, &path, None);
 ///
 /// // Compute metrics
-/// let space = metrics(&parser, &path).unwrap();
+/// let space = metrics(&parser, &path, None).unwrap();
 ///
 /// // Dump all metrics
 /// dump_root(&space).unwrap();

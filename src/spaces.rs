@@ -1,3 +1,4 @@
+use arrayvec::ArrayVec;
 use serde::Serialize;
 use std::fmt;
 use std::path::PathBuf;
@@ -162,32 +163,64 @@ impl FuncSpace {
 }
 
 #[inline(always)]
-fn compute_halstead_and_mi<'a, T: ParserTrait>(state: &mut State<'a>) {
-    state
-        .halstead_maps
-        .finalize(&mut state.space.metrics.halstead);
-    T::Mi::compute(
-        &state.space.metrics.loc,
-        &state.space.metrics.cyclomatic,
-        &state.space.metrics.halstead,
-        &mut state.space.metrics.mi,
-    );
+fn compute_all_metrics<'a, T: ParserTrait>(
+    node: &Node<'a>,
+    code: &'a [u8],
+    state: &mut State<'a>,
+    func_space: bool,
+    unit: bool,
+) {
+    let last = &mut state.space;
+    T::Cyclomatic::compute(&node, &mut last.metrics.cyclomatic);
+    T::Halstead::compute(&node, code, &mut state.halstead_maps);
+    T::Loc::compute(&node, &mut last.metrics.loc, func_space, unit);
+    T::Nom::compute(&node, &mut last.metrics.nom);
+    T::NArgs::compute(&node, &mut last.metrics.nargs);
+    T::Exit::compute(&node, &mut last.metrics.nexits);
+
+    let chosen_metrics_unwrapped =
 }
 
-fn finalize<'a, T: ParserTrait>(state_stack: &mut Vec<State<'a>>, diff_level: usize) {
+#[inline(always)]
+fn compute_halstead_and_mi<'a, T: ParserTrait>(
+    state: &mut State<'a>,
+    chosen_metrics: Option<&ChosenMetrics>,
+) {
+    if chosen_metrics.map_or(true, |m| {
+        m.is_metric(MetricsList::Mi) || m.is_metric(MetricsList::Halstead)
+    }) {
+        state
+            .halstead_maps
+            .finalize(&mut state.space.metrics.halstead);
+    }
+    if chosen_metrics.map_or(true, |m| m.is_metric(MetricsList::Mi)) {
+        T::Mi::compute(
+            &state.space.metrics.loc,
+            &state.space.metrics.cyclomatic,
+            &state.space.metrics.halstead,
+            &mut state.space.metrics.mi,
+        );
+    }
+}
+
+fn finalize<'a, T: ParserTrait>(
+    state_stack: &mut Vec<State<'a>>,
+    diff_level: usize,
+    chosen_metrics: Option<&ChosenMetrics>,
+) {
     for _ in 0..diff_level {
         if state_stack.len() <= 1 {
             let mut last_state = state_stack.last_mut().unwrap();
-            compute_halstead_and_mi::<T>(&mut last_state);
+            compute_halstead_and_mi::<T>(&mut last_state, chosen_metrics);
             break;
         }
 
         let mut state = state_stack.pop().unwrap();
-        compute_halstead_and_mi::<T>(&mut state);
+        compute_halstead_and_mi::<T>(&mut state, chosen_metrics);
 
         let mut last_state = state_stack.last_mut().unwrap();
         last_state.halstead_maps.merge(&state.halstead_maps);
-        compute_halstead_and_mi::<T>(&mut last_state);
+        compute_halstead_and_mi::<T>(&mut last_state, chosen_metrics);
 
         // Merge function spaces
         last_state.space.metrics.merge(&state.space.metrics);
@@ -222,10 +255,14 @@ struct State<'a> {
 /// let parser = CppParser::new(source_as_vec, &path, None);
 ///
 /// // Gets all function spaces data of the code contained in foo.c
-/// metrics(&parser, &path).unwrap();
+/// metrics(&parser, &path, None).unwrap();
 /// # }
 /// ```
-pub fn metrics<'a, T: ParserTrait>(parser: &'a T, path: &'a PathBuf) -> Option<FuncSpace> {
+pub fn metrics<'a, T: ParserTrait>(
+    parser: &'a T,
+    path: &'a PathBuf,
+    chosen_metrics: Option<&ChosenMetrics>,
+) -> Option<FuncSpace> {
     let code = parser.get_code();
     let node = parser.get_root();
     let mut cursor = node.object().walk();
@@ -238,7 +275,7 @@ pub fn metrics<'a, T: ParserTrait>(parser: &'a T, path: &'a PathBuf) -> Option<F
 
     while let Some((node, level)) = stack.pop() {
         if level < last_level {
-            finalize::<T>(&mut state_stack, last_level - level);
+            finalize::<T>(&mut state_stack, last_level - level, chosen_metrics);
             last_level = level;
         }
 
@@ -260,13 +297,12 @@ pub fn metrics<'a, T: ParserTrait>(parser: &'a T, path: &'a PathBuf) -> Option<F
         };
 
         if let Some(state) = state_stack.last_mut() {
-            let last = &mut state.space;
-            T::Cyclomatic::compute(&node, &mut last.metrics.cyclomatic);
-            T::Halstead::compute(&node, code, &mut state.halstead_maps);
-            T::Loc::compute(&node, &mut last.metrics.loc, func_space, unit);
-            T::Nom::compute(&node, &mut last.metrics.nom);
-            T::NArgs::compute(&node, &mut last.metrics.nargs);
-            T::Exit::compute(&node, &mut last.metrics.nexits);
+            if chosen_metrics.map_or(true, |m| m.chosen_metrics.is_full()) {
+                compute_all_metrics::<T>(&node, code, state, func_space, unit);
+            } else {
+                let chosen_metrics_unwrapped = chosen_metrics.unwrap();
+                compute_all_metrics::<T>(&node, code, state, func_space, unit, chosen_metrics_unwrapped);
+            }
         }
 
         cursor.reset(node.object());
@@ -283,7 +319,7 @@ pub fn metrics<'a, T: ParserTrait>(parser: &'a T, path: &'a PathBuf) -> Option<F
         }
     }
 
-    finalize::<T>(&mut state_stack, std::usize::MAX);
+    finalize::<T>(&mut state_stack, std::usize::MAX, chosen_metrics);
 
     state_stack.pop().map(|mut state| {
         state.space.name = path.to_str().map(|name| name.to_string());
@@ -291,11 +327,52 @@ pub fn metrics<'a, T: ParserTrait>(parser: &'a T, path: &'a PathBuf) -> Option<F
     })
 }
 
+/// A list of the supported metrics.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MetricsList {
+    Nargs,
+    Nexits,
+    Cyclomatic,
+    Halstead,
+    Mi,
+    Loc,
+    Nom,
+}
+
+/// The chosen metrics to be computed.
+pub struct ChosenMetrics {
+    chosen_metrics: ArrayVec<[MetricsList; 7]>,
+}
+
+impl ChosenMetrics {
+    /// Creates a new list of chosen metrics.
+    pub fn new(metrics_list: &[MetricsList]) -> Self {
+        let mut chosen_metrics = ArrayVec::<[MetricsList; 7]>::new();
+        for metric in metrics_list {
+            if !(chosen_metrics.is_full() || chosen_metrics.as_slice().contains(metric)) {
+                chosen_metrics.push(*metric);
+            }
+        }
+        Self { chosen_metrics }
+    }
+
+    pub(crate) fn is_full(&self) -> bool {
+        self.chosen_metrics.is_full()
+    }
+
+    #[inline(always)]
+    pub(crate) fn is_metric(&self, metric: MetricsList) -> bool {
+        self.chosen_metrics.as_slice().contains(&metric)
+    }
+}
+
 /// Configuration options for computing
 /// the metrics of a code.
 pub struct MetricsCfg {
-    /// Path to the file containing the code
+    /// Path to the file containing the code.
     pub path: PathBuf,
+    /// Chosen metrics to be computed.
+    pub chosen_metrics: Option<ChosenMetrics>,
 }
 
 pub struct Metrics {
@@ -307,8 +384,9 @@ impl Callback for Metrics {
     type Cfg = MetricsCfg;
 
     fn call<T: ParserTrait>(cfg: Self::Cfg, parser: &T) -> Self::Res {
-        if let Some(space) = metrics(parser, &cfg.path) {
+        if let Some(space) = metrics(parser, &cfg.path, None) {
             dump_root(&space)
+        //dump_root(&space, cfg.chosen_metrics.as_deref())
         } else {
             Ok(())
         }

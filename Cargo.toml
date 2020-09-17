@@ -16,6 +16,7 @@ cc = "^1.0"
 phf_codegen = "^0.8"
 
 [dependencies]
+arrayvec = "^0.5"
 aho-corasick = "^0.7"
 enum-iterator = "^0.6"
 fxhash = "0.2"

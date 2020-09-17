@@ -39,7 +39,7 @@ impl Callback for WebMetricsCallback {
     type Cfg = WebMetricsCfg;
 
     fn call<T: ParserTrait>(cfg: Self::Cfg, parser: &T) -> Self::Res {
-        let spaces = metrics(parser, &cfg.path);
+        let spaces = metrics(parser, &cfg.path, None);
         let spaces = if cfg.unit {
             if let Some(mut spaces) = spaces {
                 spaces.spaces.clear();

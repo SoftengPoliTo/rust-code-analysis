@@ -106,6 +106,7 @@ macro_rules! mk_action {
         /// // Configuration options used by the function which computes the metrics
         /// let cfg = MetricsCfg {
         ///     path,
+        ///     chosen_metrics: None,
         /// };
         ///
         /// action::<Metrics>(&language, source_as_vec, &cfg.path.clone(), None, cfg);
@@ -151,7 +152,7 @@ macro_rules! mk_action {
                 $(
                     LANG::$camel => {
                         let parser = $parser::new(source, &path, pr);
-                        metrics(&parser, &path)
+                        metrics(&parser, &path, None)
                     },
                 )*
             }
@@ -294,7 +295,7 @@ macro_rules! check_metrics {
             let mut trimmed_bytes = $source.trim_end().trim_matches('\n').as_bytes().to_vec();
             trimmed_bytes.push(b'\n');
             let parser = $parser::new(trimmed_bytes, &path, None);
-            let func_space = metrics(&parser, &path).unwrap();
+            let func_space = metrics(&parser, &path, None).unwrap();
 
             $( assert_eq!(func_space.metrics.$metric.$func_int() $(as $type_int)?, $true_int_value); )*
 

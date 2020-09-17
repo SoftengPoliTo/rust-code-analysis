@@ -57,6 +57,33 @@ struct JobItem {
 type JobReceiver = Receiver<Option<JobItem>>;
 type JobSender = Sender<Option<JobItem>>;
 
+#[inline(always)]
+fn metrics_from_str(metric: &str) -> Result<MetricsList, std::string::String> {
+    match metric {
+        "nargs" => Ok(MetricsList::Nargs),
+        "nexits" => Ok(MetricsList::Nexits),
+        "cyclomatic" => Ok(MetricsList::Cyclomatic),
+        "halstead" => Ok(MetricsList::Halstead),
+        "mi" => Ok(MetricsList::Mi),
+        "loc" => Ok(MetricsList::Loc),
+        "nom" => Ok(MetricsList::Nom),
+        metric => Err(format!("{:?} is not a supported metric", metric)),
+    }
+}
+
+#[inline(always)]
+fn all_supported_metrics() -> &'static [&'static str] {
+    &[
+        "nargs",
+        "nexits",
+        "cyclomatic",
+        "halstead",
+        "mi",
+        "loc",
+        "nom",
+    ]
+}
+
 fn mk_globset(elems: clap::Values) -> GlobSet {
     let mut globset = GlobSetBuilder::new();
     for e in elems {
@@ -100,7 +127,10 @@ fn act_on_file(language: Option<LANG>, path: PathBuf, cfg: &Config) -> std::io::
             let space = get_function_spaces(&language, source, &path, pr).unwrap();
             output_format.dump_formats(&space, &path, &cfg.output, cfg.pretty)
         } else {
-            let cfg = MetricsCfg { path };
+            let cfg = MetricsCfg {
+                path,
+                chosen_metrics: None,
+            };
             action::<Metrics>(&language, source, &cfg.path.clone(), pr, cfg)
         }
     } else if cfg.comments {
