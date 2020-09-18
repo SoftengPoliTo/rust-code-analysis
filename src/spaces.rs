@@ -177,8 +177,29 @@ fn compute_all_metrics<'a, T: ParserTrait>(
     T::Nom::compute(&node, &mut last.metrics.nom);
     T::NArgs::compute(&node, &mut last.metrics.nargs);
     T::Exit::compute(&node, &mut last.metrics.nexits);
+}
 
-    let chosen_metrics_unwrapped =
+#[inline(always)]
+fn compute_certain_metrics<'a, T: ParserTrait>(
+    node: &Node<'a>,
+    code: &'a [u8],
+    state: &mut State<'a>,
+    func_space: bool,
+    unit: bool,
+    chosen_metrics: ChosenMetrics,
+) {
+    let last = &mut state.space;
+    for metric in chosen_metrics {
+        match metric {
+            MetricsList::Cyclomatic => T::Cyclomatic::compute(&node, &mut last.metrics.cyclomatic),
+            MetricsList::Halstead => T::Halstead::compute(&node, code, &mut state.halstead_maps),
+            MetricsList::Loc => T::Loc::compute(&node, &mut last.metrics.loc, func_space, unit),
+            MetricsList::Nom => T::Nom::compute(&node, &mut last.metrics.nom),
+            MetricsList::Nargs => T::NArgs::compute(&node, &mut last.metrics.nargs),
+            MetricsList::Nexits => T::Exit::compute(&node, &mut last.metrics.nexits),
+            MetricsList::Mi => continue,
+        }
+    }
 }
 
 #[inline(always)]
@@ -297,11 +318,18 @@ pub fn metrics<'a, T: ParserTrait>(
         };
 
         if let Some(state) = state_stack.last_mut() {
-            if chosen_metrics.map_or(true, |m| m.chosen_metrics.is_full()) {
+            if chosen_metrics.map_or(true, |m| m.is_full()) {
                 compute_all_metrics::<T>(&node, code, state, func_space, unit);
             } else {
                 let chosen_metrics_unwrapped = chosen_metrics.unwrap();
-                compute_all_metrics::<T>(&node, code, state, func_space, unit, chosen_metrics_unwrapped);
+                compute_certain_metrics::<T>(
+                    &node,
+                    code,
+                    state,
+                    func_space,
+                    unit,
+                    chosen_metrics_unwrapped.clone(),
+                );
             }
         }
 
@@ -334,28 +362,55 @@ pub enum MetricsList {
     Nexits,
     Cyclomatic,
     Halstead,
-    Mi,
     Loc,
+    Mi,
     Nom,
 }
 
 /// The chosen metrics to be computed.
+#[derive(Clone)]
 pub struct ChosenMetrics {
     chosen_metrics: ArrayVec<[MetricsList; 7]>,
+    index: usize,
+}
+
+impl Iterator for ChosenMetrics {
+    type Item = MetricsList;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.chosen_metrics.len() {
+            let metrics_as_slice = self.chosen_metrics.as_slice();
+            let value = metrics_as_slice[self.index];
+            self.index += 1;
+            Some(value)
+        } else {
+            None
+        }
+    }
 }
 
 impl ChosenMetrics {
     /// Creates a new list of chosen metrics.
     pub fn new(metrics_list: &[MetricsList]) -> Self {
         let mut chosen_metrics = ArrayVec::<[MetricsList; 7]>::new();
+        if metrics_list.contains(&MetricsList::Mi) {
+            chosen_metrics.push(MetricsList::Mi);
+            chosen_metrics.push(MetricsList::Loc);
+            chosen_metrics.push(MetricsList::Cyclomatic);
+            chosen_metrics.push(MetricsList::Halstead);
+        }
         for metric in metrics_list {
             if !(chosen_metrics.is_full() || chosen_metrics.as_slice().contains(metric)) {
                 chosen_metrics.push(*metric);
             }
         }
-        Self { chosen_metrics }
+        Self {
+            chosen_metrics,
+            index: 0,
+        }
     }
 
+    #[inline(always)]
     pub(crate) fn is_full(&self) -> bool {
         self.chosen_metrics.is_full()
     }
@@ -385,8 +440,7 @@ impl Callback for Metrics {
 
     fn call<T: ParserTrait>(cfg: Self::Cfg, parser: &T) -> Self::Res {
         if let Some(space) = metrics(parser, &cfg.path, None) {
-            dump_root(&space)
-        //dump_root(&space, cfg.chosen_metrics.as_deref())
+            dump_root(&space, None)
         } else {
             Ok(())
         }

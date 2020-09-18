@@ -9,7 +9,7 @@ use crate::loc;
 use crate::mi;
 use crate::nom;
 
-use crate::spaces::{CodeMetrics, FuncSpace};
+use crate::spaces::{ChosenMetrics, CodeMetrics, FuncSpace, MetricsList};
 
 /// Dumps the metrics of a code.
 ///
@@ -36,15 +36,15 @@ use crate::spaces::{CodeMetrics, FuncSpace};
 /// let space = metrics(&parser, &path, None).unwrap();
 ///
 /// // Dump all metrics
-/// dump_root(&space).unwrap();
+/// dump_root(&space, None).unwrap();
 /// # }
 /// ```
 ///
 /// [`Result`]: #variant.Result
-pub fn dump_root(space: &FuncSpace) -> std::io::Result<()> {
+pub fn dump_root(space: &FuncSpace, chosen_metrics: Option<&ChosenMetrics>) -> std::io::Result<()> {
     let stdout = StandardStream::stdout(ColorChoice::Always);
     let mut stdout = stdout.lock();
-    dump_space(&space, "", true, &mut stdout)?;
+    dump_space(&space, "", true, &mut stdout, chosen_metrics)?;
     color!(stdout, White);
 
     Ok(())
@@ -55,6 +55,7 @@ fn dump_space(
     prefix: &str,
     last: bool,
     stdout: &mut StandardStreamLock,
+    chosen_metrics: Option<&ChosenMetrics>,
 ) -> std::io::Result<()> {
     let (pref_child, pref) = if last { ("   ", "`- ") } else { ("|  ", "|- ") };
 
@@ -71,13 +72,19 @@ fn dump_space(
     writeln!(stdout, " (@{})", space.start_line)?;
 
     let prefix = format!("{}{}", prefix, pref_child);
-    dump_metrics(&space.metrics, &prefix, space.spaces.is_empty(), stdout)?;
+    dump_metrics(
+        &space.metrics,
+        &prefix,
+        space.spaces.is_empty(),
+        stdout,
+        chosen_metrics,
+    )?;
 
     if let Some((last, spaces)) = space.spaces.split_last() {
         for space in spaces {
-            dump_space(space, &prefix, false, stdout)?;
+            dump_space(space, &prefix, false, stdout, chosen_metrics)?;
         }
-        dump_space(last, &prefix, true, stdout)?;
+        dump_space(last, &prefix, true, stdout, chosen_metrics)?;
     }
 
     Ok(())
@@ -88,6 +95,7 @@ fn dump_metrics(
     prefix: &str,
     last: bool,
     stdout: &mut StandardStreamLock,
+    chosen_metrics: Option<&ChosenMetrics>,
 ) -> std::io::Result<()> {
     let (pref_child, pref) = if last { ("   ", "`- ") } else { ("|  ", "|- ") };
 
@@ -98,13 +106,31 @@ fn dump_metrics(
     writeln!(stdout, "metrics")?;
 
     let prefix = format!("{}{}", prefix, pref_child);
-    dump_cyclomatic(&metrics.cyclomatic, &prefix, false, stdout)?;
-    dump_nargs(&metrics.nargs, &prefix, false, stdout)?;
-    dump_nexits(&metrics.nexits, &prefix, false, stdout)?;
-    dump_halstead(&metrics.halstead, &prefix, false, stdout)?;
-    dump_loc(&metrics.loc, &prefix, false, stdout)?;
-    dump_nom(&metrics.nom, &prefix, false, stdout)?;
-    dump_mi(&metrics.mi, &prefix, true, stdout)
+    if chosen_metrics.map_or(true, |m| m.is_full()) {
+        dump_cyclomatic(&metrics.cyclomatic, &prefix, false, stdout)?;
+        dump_nargs(&metrics.nargs, &prefix, false, stdout)?;
+        dump_nexits(&metrics.nexits, &prefix, false, stdout)?;
+        dump_halstead(&metrics.halstead, &prefix, false, stdout)?;
+        dump_loc(&metrics.loc, &prefix, false, stdout)?;
+        dump_nom(&metrics.nom, &prefix, false, stdout)?;
+        dump_mi(&metrics.mi, &prefix, true, stdout)?;
+    } else {
+        let chosen_metrics_unwrapped = chosen_metrics.unwrap();
+        for metric in chosen_metrics_unwrapped.clone() {
+            match metric {
+                MetricsList::Cyclomatic => {
+                    dump_cyclomatic(&metrics.cyclomatic, &prefix, false, stdout)?
+                }
+                MetricsList::Halstead => dump_halstead(&metrics.halstead, &prefix, false, stdout)?,
+                MetricsList::Loc => dump_loc(&metrics.loc, &prefix, false, stdout)?,
+                MetricsList::Nom => dump_nom(&metrics.nom, &prefix, false, stdout)?,
+                MetricsList::Nargs => dump_nargs(&metrics.nargs, &prefix, false, stdout)?,
+                MetricsList::Nexits => dump_nexits(&metrics.nexits, &prefix, false, stdout)?,
+                MetricsList::Mi => dump_mi(&metrics.mi, &prefix, true, stdout)?,
+            }
+        }
+    }
+    Ok(())
 }
 
 fn dump_cyclomatic(

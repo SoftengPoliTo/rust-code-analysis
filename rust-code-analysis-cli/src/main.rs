@@ -325,8 +325,11 @@ fn main() {
         .arg(
             Arg::with_name("metrics")
                 .help("Compute different metrics")
+                .short("m")
                 .long("metrics")
-                .short("m"),
+                .default_value("")
+                .possible_values(all_supported_metrics())
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("in_place")
@@ -372,6 +375,7 @@ fn main() {
                 .help("Output metrics as different formats")
                 .short("O")
                 .long("output-format")
+                .requires("metrics")
                 .possible_values(Format::all())
                 .takes_value(true),
         )
@@ -385,7 +389,7 @@ fn main() {
                 .help("Output file/directory")
                 .short("o")
                 .long("output")
-                .default_value("")
+                .requires("metrics")
                 .takes_value(true),
         )
         .arg(
@@ -480,7 +484,6 @@ fn main() {
     } else {
         None
     };
-    let metrics = matches.is_present("metrics");
     let typ = matches.value_of("language_type").unwrap();
     let preproc_value = matches.value_of("preproc").unwrap();
     let (preproc_lock, preproc) = if !preproc_value.is_empty() {
@@ -504,10 +507,17 @@ fn main() {
     let output_format = matches
         .value_of("output_format")
         .map(parse_or_exit::<Format>);
+    let chosen_metrics = matches
+        .values_of("metrics")
+        .map(|m| metrics_from_str(m.next()))
+        .unwrap_or_else(|e| {
+            eprintln!("Error:\n{}", e);
+            process::exit(1);
+        });
     let pretty = matches.is_present("pretty");
     let output = matches.value_of("output").map(|s| PathBuf::from(s));
-    let output_is_dir = output.as_ref().map(|p| p.is_dir()).unwrap_or(false);
-    if metrics && output.is_some() && !output_is_dir {
+    let output_is_dir = output.as_ref().map(|p| p.is_dir()).unwrap_or(true);
+    if !output_is_dir {
         eprintln!("Error: The output parameter must be a directory");
         process::exit(1);
     }
@@ -542,7 +552,7 @@ fn main() {
         find_filter,
         count_filter,
         function,
-        metrics,
+        chosen_metrics,
         output_format,
         pretty,
         output: output.clone(),
