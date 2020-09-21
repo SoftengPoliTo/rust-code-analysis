@@ -2,6 +2,7 @@ use arrayvec::ArrayVec;
 use serde::Serialize;
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use crate::checker::Checker;
 use crate::node::Node;
@@ -367,6 +368,38 @@ pub enum MetricsList {
     Nom,
 }
 
+impl MetricsList {
+    /// Returns a list containing the supported metrics.
+    pub const fn all() -> &'static [&'static str] {
+        &[
+            "nargs",
+            "nexits",
+            "cyclomatic",
+            "halstead",
+            "mi",
+            "loc",
+            "nom",
+        ]
+    }
+}
+
+impl FromStr for MetricsList {
+    type Err = String;
+
+    fn from_str(metric: &str) -> Result<Self, Self::Err> {
+        match metric {
+            "nargs" => Ok(MetricsList::Nargs),
+            "nexits" => Ok(MetricsList::Nexits),
+            "cyclomatic" => Ok(MetricsList::Cyclomatic),
+            "halstead" => Ok(MetricsList::Halstead),
+            "mi" => Ok(MetricsList::Mi),
+            "loc" => Ok(MetricsList::Loc),
+            "nom" => Ok(MetricsList::Nom),
+            metric => Err(format!("{:?} is not a supported metric", metric)),
+        }
+    }
+}
+
 /// The chosen metrics to be computed.
 #[derive(Clone)]
 pub struct ChosenMetrics {
@@ -394,10 +427,10 @@ impl ChosenMetrics {
     pub fn new(metrics_list: &[MetricsList]) -> Self {
         let mut chosen_metrics = ArrayVec::<[MetricsList; 7]>::new();
         if metrics_list.contains(&MetricsList::Mi) {
-            chosen_metrics.push(MetricsList::Mi);
-            chosen_metrics.push(MetricsList::Loc);
             chosen_metrics.push(MetricsList::Cyclomatic);
+            chosen_metrics.push(MetricsList::Loc);
             chosen_metrics.push(MetricsList::Halstead);
+            chosen_metrics.push(MetricsList::Mi);
         }
         for metric in metrics_list {
             if !(chosen_metrics.is_full() || chosen_metrics.as_slice().contains(metric)) {
@@ -419,6 +452,11 @@ impl ChosenMetrics {
     pub(crate) fn is_metric(&self, metric: MetricsList) -> bool {
         self.chosen_metrics.as_slice().contains(&metric)
     }
+
+    #[inline(always)]
+    pub(crate) fn is_last(&self, metric: &MetricsList) -> bool {
+        metric == self.chosen_metrics.as_slice().last().unwrap()
+    }
 }
 
 /// Configuration options for computing
@@ -439,8 +477,8 @@ impl Callback for Metrics {
     type Cfg = MetricsCfg;
 
     fn call<T: ParserTrait>(cfg: Self::Cfg, parser: &T) -> Self::Res {
-        if let Some(space) = metrics(parser, &cfg.path, None) {
-            dump_root(&space, None)
+        if let Some(space) = metrics(parser, &cfg.path, cfg.chosen_metrics.as_ref()) {
+            dump_root(&space, cfg.chosen_metrics.as_ref())
         } else {
             Ok(())
         }

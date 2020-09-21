@@ -38,6 +38,7 @@ struct Config {
     count_filter: Vec<String>,
     function: bool,
     metrics: bool,
+    chosen_metrics: Option<Vec<MetricsList>>,
     output_format: Option<Format>,
     output: Option<PathBuf>,
     pretty: bool,
@@ -56,33 +57,6 @@ struct JobItem {
 
 type JobReceiver = Receiver<Option<JobItem>>;
 type JobSender = Sender<Option<JobItem>>;
-
-#[inline(always)]
-fn metrics_from_str(metric: &str) -> Result<MetricsList, std::string::String> {
-    match metric {
-        "nargs" => Ok(MetricsList::Nargs),
-        "nexits" => Ok(MetricsList::Nexits),
-        "cyclomatic" => Ok(MetricsList::Cyclomatic),
-        "halstead" => Ok(MetricsList::Halstead),
-        "mi" => Ok(MetricsList::Mi),
-        "loc" => Ok(MetricsList::Loc),
-        "nom" => Ok(MetricsList::Nom),
-        metric => Err(format!("{:?} is not a supported metric", metric)),
-    }
-}
-
-#[inline(always)]
-fn all_supported_metrics() -> &'static [&'static str] {
-    &[
-        "nargs",
-        "nexits",
-        "cyclomatic",
-        "halstead",
-        "mi",
-        "loc",
-        "nom",
-    ]
-}
 
 fn mk_globset(elems: clap::Values) -> GlobSet {
     let mut globset = GlobSetBuilder::new();
@@ -123,13 +97,19 @@ fn act_on_file(language: Option<LANG>, path: PathBuf, cfg: &Config) -> std::io::
         };
         action::<Dump>(&language, source, &path, pr, cfg)
     } else if cfg.metrics {
+        let chosen_metrics = if let Some(metrics) = &cfg.chosen_metrics {
+            Some(ChosenMetrics::new(&metrics))
+        } else {
+            None
+        };
         if let Some(output_format) = &cfg.output_format {
-            let space = get_function_spaces(&language, source, &path, pr).unwrap();
+            let space =
+                get_function_spaces(&language, source, &path, pr, chosen_metrics.as_ref()).unwrap();
             output_format.dump_formats(&space, &path, &cfg.output, cfg.pretty)
         } else {
             let cfg = MetricsCfg {
                 path,
-                chosen_metrics: None,
+                chosen_metrics,
             };
             action::<Metrics>(&language, source, &cfg.path.clone(), pr, cfg)
         }
@@ -263,6 +243,7 @@ fn explore(
     all_files
 }
 
+#[inline(always)]
 fn parse_or_exit<T>(s: &str) -> T
 where
     T: FromStr,
@@ -327,8 +308,8 @@ fn main() {
                 .help("Compute different metrics")
                 .short("m")
                 .long("metrics")
-                .default_value("")
-                .possible_values(all_supported_metrics())
+                .possible_values(&[&["all"], MetricsList::all()].concat())
+                .multiple(true)
                 .takes_value(true),
         )
         .arg(
@@ -375,8 +356,8 @@ fn main() {
                 .help("Output metrics as different formats")
                 .short("O")
                 .long("output-format")
-                .requires("metrics")
                 .possible_values(Format::all())
+                .requires("metrics")
                 .takes_value(true),
         )
         .arg(
@@ -507,13 +488,21 @@ fn main() {
     let output_format = matches
         .value_of("output_format")
         .map(parse_or_exit::<Format>);
-    let chosen_metrics = matches
-        .values_of("metrics")
-        .map(|m| metrics_from_str(m.next()))
-        .unwrap_or_else(|e| {
-            eprintln!("Error:\n{}", e);
-            process::exit(1);
-        });
+    let metrics = matches.is_present("metrics");
+    let chosen_metrics = if metrics {
+        let chosen_metrics_str: Vec<_> = matches.values_of("metrics").unwrap().collect();
+        if !chosen_metrics_str.contains(&"all") {
+            let chosen_metrics: Vec<_> = chosen_metrics_str
+                .into_iter()
+                .map(parse_or_exit::<MetricsList>)
+                .collect();
+            Some(chosen_metrics)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     let pretty = matches.is_present("pretty");
     let output = matches.value_of("output").map(|s| PathBuf::from(s));
     let output_is_dir = output.as_ref().map(|p| p.is_dir()).unwrap_or(true);
@@ -552,6 +541,7 @@ fn main() {
         find_filter,
         count_filter,
         function,
+        metrics,
         chosen_metrics,
         output_format,
         pretty,

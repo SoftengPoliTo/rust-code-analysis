@@ -143,16 +143,16 @@ macro_rules! mk_action {
         /// let path = PathBuf::from("foo.c");
         /// let source_as_vec = source_code.as_bytes().to_vec();
         ///
-        /// get_function_spaces(&language, source_as_vec, &path, None).unwrap();
+        /// get_function_spaces(&language, source_as_vec, &path, None, None).unwrap();
         /// # }
         /// ```
         #[inline(always)]
-        pub fn get_function_spaces(lang: &LANG, source: Vec<u8>, path: &PathBuf, pr: Option<Arc<PreprocResults>>) -> Option<FuncSpace> {
+        pub fn get_function_spaces(lang: &LANG, source: Vec<u8>, path: &PathBuf, pr: Option<Arc<PreprocResults>>, chosen_metrics: Option<&ChosenMetrics>) -> Option<FuncSpace> {
             match lang {
                 $(
                     LANG::$camel => {
                         let parser = $parser::new(source, &path, pr);
-                        metrics(&parser, &path, None)
+                        metrics(&parser, &path, chosen_metrics)
                     },
                 )*
             }

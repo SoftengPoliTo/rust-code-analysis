@@ -117,16 +117,19 @@ fn dump_metrics(
     } else {
         let chosen_metrics_unwrapped = chosen_metrics.unwrap();
         for metric in chosen_metrics_unwrapped.clone() {
+            let is_last = chosen_metrics_unwrapped.is_last(&metric);
             match metric {
                 MetricsList::Cyclomatic => {
-                    dump_cyclomatic(&metrics.cyclomatic, &prefix, false, stdout)?
+                    dump_cyclomatic(&metrics.cyclomatic, &prefix, is_last, stdout)?
                 }
-                MetricsList::Halstead => dump_halstead(&metrics.halstead, &prefix, false, stdout)?,
-                MetricsList::Loc => dump_loc(&metrics.loc, &prefix, false, stdout)?,
-                MetricsList::Nom => dump_nom(&metrics.nom, &prefix, false, stdout)?,
-                MetricsList::Nargs => dump_nargs(&metrics.nargs, &prefix, false, stdout)?,
-                MetricsList::Nexits => dump_nexits(&metrics.nexits, &prefix, false, stdout)?,
-                MetricsList::Mi => dump_mi(&metrics.mi, &prefix, true, stdout)?,
+                MetricsList::Nargs => dump_nargs(&metrics.nargs, &prefix, is_last, stdout)?,
+                MetricsList::Nexits => dump_nexits(&metrics.nexits, &prefix, is_last, stdout)?,
+                MetricsList::Halstead => {
+                    dump_halstead(&metrics.halstead, &prefix, is_last, stdout)?
+                }
+                MetricsList::Loc => dump_loc(&metrics.loc, &prefix, is_last, stdout)?,
+                MetricsList::Nom => dump_nom(&metrics.nom, &prefix, is_last, stdout)?,
+                MetricsList::Mi => dump_mi(&metrics.mi, &prefix, is_last, stdout)?,
             }
         }
     }
