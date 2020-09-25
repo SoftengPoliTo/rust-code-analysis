@@ -38,6 +38,7 @@ struct Config {
     count_filter: Vec<String>,
     function: bool,
     metrics: bool,
+    ops: bool,
     output_format: Option<Format>,
     output: Option<PathBuf>,
     pretty: bool,
@@ -102,6 +103,14 @@ fn act_on_file(language: Option<LANG>, path: PathBuf, cfg: &Config) -> std::io::
         } else {
             let cfg = MetricsCfg { path };
             action::<Metrics>(&language, source, &cfg.path.clone(), pr, cfg)
+        }
+    } else if cfg.ops {
+        if let Some(output_format) = &cfg.output_format {
+            let ops = get_ops(&language, source, &path, pr).unwrap();
+            output_format.dump_ops_formats(&ops, &path, &cfg.output, cfg.pretty)
+        } else {
+            let cfg = OpsCfg { path };
+            action::<OpsCode>(&language, source, &cfg.path.clone(), pr, cfg)
         }
     } else if cfg.comments {
         let cfg = CommentRmCfg {
@@ -299,6 +308,12 @@ fn main() {
                 .short("m"),
         )
         .arg(
+            Arg::with_name("ops")
+                .help("Retrieves all operands and operators in a code")
+                .long("ops")
+                .conflicts_with("metrics"),
+        )
+        .arg(
             Arg::with_name("in_place")
                 .help("Do action in place")
                 .short("i"),
@@ -450,6 +465,7 @@ fn main() {
         None
     };
     let metrics = matches.is_present("metrics");
+    let ops = matches.is_present("ops");
     let typ = matches.value_of("language_type").unwrap();
     let preproc_value = matches.value_of("preproc").unwrap();
     let (preproc_lock, preproc) = if !preproc_value.is_empty() {
@@ -476,7 +492,7 @@ fn main() {
     let pretty = matches.is_present("pretty");
     let output = matches.value_of("output").map(|s| PathBuf::from(s));
     let output_is_dir = output.as_ref().map(|p| p.is_dir()).unwrap_or(false);
-    if metrics && output.is_some() && !output_is_dir {
+    if (metrics || ops) && output.is_some() && !output_is_dir {
         eprintln!("Error: The output parameter must be a directory");
         process::exit(1);
     }
@@ -512,6 +528,7 @@ fn main() {
         count_filter,
         function,
         metrics,
+        ops,
         output_format,
         pretty,
         output: output.clone(),
