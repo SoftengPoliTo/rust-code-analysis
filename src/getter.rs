@@ -5,6 +5,21 @@ use crate::traits::Search;
 
 use crate::*;
 
+macro_rules! get_operator {
+    ($language:ident) => {
+        #[inline(always)]
+        fn get_operator_id_as_str(id: u16) -> &'static str {
+            let typ: $language = id.into();
+            match typ {
+                $language::LPAREN => "()",
+                $language::LBRACK => "[]",
+                $language::LBRACE => "{}",
+                _ => typ.into(),
+            }
+        }
+    };
+}
+
 pub trait Getter {
     fn get_func_name<'a>(node: &Node, code: &'a [u8]) -> Option<&'a str> {
         Self::get_func_space_name(node, code)
@@ -26,6 +41,10 @@ pub trait Getter {
 
     fn get_op_type(_node: &Node) -> HalsteadType {
         HalsteadType::Unknown
+    }
+
+    fn get_operator_id_as_str(_id: u16) -> &'static str {
+        ""
     }
 }
 
@@ -67,6 +86,12 @@ impl Getter for PythonCode {
             }
             _ => HalsteadType::Unknown,
         }
+    }
+
+    #[inline(always)]
+    fn get_operator_id_as_str(id: u16) -> &'static str {
+        let typ: Python = id.into();
+        typ.into()
     }
 }
 
@@ -136,6 +161,8 @@ impl Getter for MozjsCode {
             _ => HalsteadType::Unknown,
         }
     }
+
+    get_operator!(Mozjs);
 }
 
 impl Getter for JavascriptCode {
@@ -204,6 +231,8 @@ impl Getter for JavascriptCode {
             _ => HalsteadType::Unknown,
         }
     }
+
+    get_operator!(Javascript);
 }
 
 impl Getter for TypescriptCode {
@@ -272,6 +301,8 @@ impl Getter for TypescriptCode {
             _ => HalsteadType::Unknown,
         }
     }
+
+    get_operator!(Typescript);
 }
 
 impl Getter for TsxCode {
@@ -340,6 +371,8 @@ impl Getter for TsxCode {
             _ => HalsteadType::Unknown,
         }
     }
+
+    get_operator!(Tsx);
 }
 
 impl Getter for RustCode {
@@ -387,6 +420,8 @@ impl Getter for RustCode {
             _ => HalsteadType::Unknown,
         }
     }
+
+    get_operator!(Rust);
 }
 
 impl Getter for CppCode {
@@ -466,6 +501,8 @@ impl Getter for CppCode {
             _ => HalsteadType::Unknown,
         }
     }
+
+    get_operator!(Cpp);
 }
 
 impl Getter for PreprocCode {}
