@@ -322,11 +322,20 @@ impl Loc for RustCode {
             | ClosureExpression
             | BreakExpression
             | ContinueExpression
-            | IndexExpression
             | AwaitExpression
             | FieldExpression
             | MacroInvocation => {
                 stats.logical_lines += 1;
+            }
+            IndexExpression => {
+                if count_specific_ancestors!(
+                    node,
+                    IndexExpression,
+                    SourceFile | FunctionItem | ClosureExpression
+                ) == 0
+                {
+                    stats.logical_lines += 1;
+                }
             }
             _ => {
                 stats.lines.insert(start);
@@ -536,6 +545,30 @@ mod tests {
                 break;",
             "foo.c",
             CppParser,
+            loc,
+            [(lloc, 2, usize)]
+        );
+    }
+
+    #[test]
+    fn c_index_lloc() {
+        check_metrics!(
+            "a[b + c + d[e + 3 + l[m]]];
+             a[b + c + d[e + 3 + l[m]]];",
+            "foo.c",
+            CppParser,
+            loc,
+            [(lloc, 2, usize)]
+        );
+    }
+
+    #[test]
+    fn rust_index_lloc() {
+        check_metrics!(
+            "a[b + c + d[e + 3 + l[m]]];
+             a[b + c + d[e + 3 + l[m]]];",
+            "foo.rs",
+            RustParser,
             loc,
             [(lloc, 2, usize)]
         );
