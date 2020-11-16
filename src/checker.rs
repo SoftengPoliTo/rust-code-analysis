@@ -19,6 +19,7 @@ pub trait Checker {
     fn is_string(node: &Node) -> bool;
     fn is_call(node: &Node) -> bool;
     fn is_func(node: &Node) -> bool;
+    fn is_closure(node: &Node) -> bool;
     fn is_func_space(node: &Node) -> bool;
     fn is_non_arg(node: &Node) -> bool;
 
@@ -32,6 +33,7 @@ impl Checker for PreprocCode {
     mk_checker!(is_string, StringLiteral, RawStringLiteral);
     mk_checker!(is_call,);
     mk_checker!(is_func,);
+    mk_checker!(is_closure,);
     mk_checker!(is_func_space,);
     mk_checker!(is_non_arg,);
 }
@@ -41,6 +43,7 @@ impl Checker for CcommentCode {
     mk_checker!(is_string, StringLiteral, RawStringLiteral);
     mk_checker!(is_call,);
     mk_checker!(is_func,);
+    mk_checker!(is_closure,);
     mk_checker!(is_func_space,);
     mk_checker!(is_non_arg,);
 
@@ -68,6 +71,7 @@ impl Checker for CppCode {
         FunctionDefinition2,
         FunctionDefinition3
     );
+    mk_checker!(is_closure, LambdaExpression);
     mk_checker!(
         is_func_space,
         TranslationUnit,
@@ -105,6 +109,7 @@ impl Checker for CSharpCode {
         AccessorDeclaration,
         LocalFunctionStatement
     );
+    mk_checker!(is_closure,);
     mk_checker!(
         is_func_space,
         CompilationUnit,
@@ -130,6 +135,7 @@ impl Checker for PythonCode {
     mk_checker!(is_string, String, ConcatenatedString);
     mk_checker!(is_call, Call);
     mk_checker!(is_func, FunctionDefinition);
+    mk_checker!(is_closure, Lambda);
     mk_checker!(is_func_space, Module, FunctionDefinition, ClassDefinition);
     mk_checker!(is_non_arg, LPAREN, COMMA, RPAREN);
 }
@@ -139,6 +145,7 @@ impl Checker for JavaCode {
     mk_checker!(is_string, StringLiteral);
     mk_checker!(is_call, MethodInvocation);
     mk_checker!(is_func, MethodDeclaration);
+    mk_checker!(is_closure,);
     mk_checker!(is_func_space, Program, ClassDeclaration);
     mk_checker!(is_non_arg,);
 }
@@ -147,13 +154,12 @@ impl Checker for MozjsCode {
     mk_checker!(is_comment, Comment);
     mk_checker!(is_string, String, TemplateString);
     mk_checker!(is_call, CallExpression);
+    mk_checker!(is_func, FunctionDeclaration, MethodDefinition);
     mk_checker!(
-        is_func,
+        is_closure,
         Function,
         GeneratorFunction,
-        FunctionDeclaration,
         GeneratorFunctionDeclaration,
-        MethodDefinition,
         ArrowFunction
     );
     mk_checker!(
@@ -177,13 +183,12 @@ impl Checker for JavascriptCode {
     mk_checker!(is_comment, Comment);
     mk_checker!(is_string, String, TemplateString);
     mk_checker!(is_call, CallExpression);
+    mk_checker!(is_func, FunctionDeclaration, MethodDefinition);
     mk_checker!(
-        is_func,
+        is_closure,
         Function,
         GeneratorFunction,
-        FunctionDeclaration,
         GeneratorFunctionDeclaration,
-        MethodDefinition,
         ArrowFunction
     );
     mk_checker!(
@@ -206,13 +211,12 @@ impl Checker for TypescriptCode {
     mk_checker!(is_comment, Comment);
     mk_checker!(is_string, String, TemplateString);
     mk_checker!(is_call, CallExpression);
+    mk_checker!(is_func, FunctionDeclaration, MethodDefinition);
     mk_checker!(
-        is_func,
+        is_closure,
         Function,
         GeneratorFunction,
-        FunctionDeclaration,
         GeneratorFunctionDeclaration,
-        MethodDefinition,
         ArrowFunction
     );
     mk_checker!(
@@ -235,13 +239,12 @@ impl Checker for TsxCode {
     mk_checker!(is_comment, Comment);
     mk_checker!(is_string, String, TemplateString);
     mk_checker!(is_call, CallExpression);
+    mk_checker!(is_func, FunctionDeclaration, MethodDefinition);
     mk_checker!(
-        is_func,
+        is_closure,
         Function,
         GeneratorFunction,
-        FunctionDeclaration,
         GeneratorFunctionDeclaration,
-        MethodDefinition,
         ArrowFunction
     );
     mk_checker!(
@@ -266,6 +269,7 @@ impl Checker for GoCode {
     mk_checker!(is_string, RawStringLiteral, InterpretedStringLiteral);
     mk_checker!(is_call, CallExpression);
     mk_checker!(is_func, FunctionDeclaration, MethodDeclaration, FuncLiteral);
+    mk_checker!(is_closure,);
     mk_checker!(
         is_func_space,
         SourceFile,
@@ -281,6 +285,7 @@ impl Checker for CssCode {
     mk_checker!(is_string, StringValue);
     mk_checker!(is_call, CallExpression);
     mk_checker!(is_func,);
+    mk_checker!(is_closure,);
     mk_checker!(is_func_space,);
     mk_checker!(is_non_arg,);
 }
@@ -290,6 +295,7 @@ impl Checker for HtmlCode {
     mk_checker!(is_string,);
     mk_checker!(is_call,);
     mk_checker!(is_func,);
+    mk_checker!(is_closure,);
     mk_checker!(is_func_space,);
     mk_checker!(is_non_arg,);
 }
@@ -311,7 +317,8 @@ impl Checker for RustCode {
     mk_else_if!(IfExpression);
     mk_checker!(is_string, StringLiteral, RawStringLiteral);
     mk_checker!(is_call, CallExpression);
-    mk_checker!(is_func, FunctionItem, ClosureExpression);
+    mk_checker!(is_func, FunctionItem);
+    mk_checker!(is_closure, ClosureExpression);
     mk_checker!(
         is_func_space,
         SourceFile,
@@ -320,5 +327,5 @@ impl Checker for RustCode {
         TraitItem,
         ClosureExpression
     );
-    mk_checker!(is_non_arg, LPAREN, COMMA, RPAREN, AttributeItem);
+    mk_checker!(is_non_arg, LPAREN, COMMA, RPAREN, PIPE, AttributeItem);
 }

@@ -7,12 +7,12 @@ use crate::node::Node;
 
 use crate::cognitive::{self, Cognitive};
 use crate::cyclomatic::{self, Cyclomatic};
-use crate::exit::{self, Exit};
 use crate::fn_args::{self, NArgs};
 use crate::getter::Getter;
 use crate::halstead::{self, Halstead, HalsteadMaps};
 use crate::loc::{self, Loc};
 use crate::mi::{self, Mi};
+use crate::nexits::{self, Exit};
 use crate::nom::{self, Nom};
 
 use crate::dump_metrics::*;
@@ -62,7 +62,7 @@ pub struct CodeMetrics {
     /// `NArgs` data
     pub nargs: fn_args::Stats,
     /// `NExits` data
-    pub nexits: exit::Stats,
+    pub nexits: nexits::Stats,
     pub cognitive: cognitive::Stats,
     /// `Cyclomatic` data
     pub cyclomatic: cyclomatic::Stats,
@@ -86,7 +86,7 @@ impl Default for CodeMetrics {
             nom: nom::Stats::default(),
             mi: mi::Stats::default(),
             nargs: fn_args::Stats::default(),
-            nexits: exit::Stats::default(),
+            nexits: nexits::Stats::default(),
         }
     }
 }

@@ -3,11 +3,11 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, StandardStreamLoc
 
 use crate::cognitive;
 use crate::cyclomatic;
-use crate::exit;
 use crate::fn_args;
 use crate::halstead;
 use crate::loc;
 use crate::mi;
+use crate::nexits;
 use crate::nom;
 
 use crate::spaces::{CodeMetrics, FuncSpace};
@@ -269,21 +269,24 @@ fn dump_nargs(
 }
 
 fn dump_nexits(
-    stats: &exit::Stats,
+    stats: &nexits::Stats,
     prefix: &str,
     last: bool,
     stdout: &mut StandardStreamLock,
 ) -> std::io::Result<()> {
-    let pref = if last { "`- " } else { "|- " };
+    let (pref_child, pref) = if last { ("   ", "`- ") } else { ("|  ", "|- ") };
 
     color!(stdout, Blue);
     write!(stdout, "{}{}", prefix, pref)?;
 
     color!(stdout, Green, true);
-    write!(stdout, "nexits: ")?;
+    writeln!(stdout, "nexits")?;
 
-    color!(stdout, White);
-    writeln!(stdout, "{}", stats.exit())
+    let prefix = format!("{}{}", prefix, pref_child);
+    dump_value("functions", stats.fn_exits(), &prefix, false, stdout)?;
+    dump_value("closures", stats.closure_exits(), &prefix, false, stdout)?;
+    dump_value("total", stats.total(), &prefix, false, stdout)?;
+    dump_value("average", stats.nexits_average(), &prefix, true, stdout)
 }
 
 fn dump_value(
