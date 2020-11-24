@@ -21,8 +21,7 @@ use std::sync::{Arc, Mutex};
 use std::{process, thread};
 use walkdir::{DirEntry, WalkDir};
 
-use formats::Format;
-
+use formats::formats::Format;
 use rust_code_analysis::*;
 
 #[derive(Debug)]

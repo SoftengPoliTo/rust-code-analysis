@@ -1,0 +1,61 @@
+#toc_container {
+    background: #f9f9f9 none repeat scroll 0 0;
+    border: 1px solid #aaa;
+    display: table;
+    font-size: 95%;
+    margin-bottom: 1em;
+    padding: 20px;
+    width: auto;
+}
+
+.toc_title {
+    font-weight: 700;
+    text-align: center;
+}
+
+ol {
+  counter-reset: item
+}
+
+ol li {
+  display: block
+}
+
+ol li:before {
+  content: counters(item, ".") " ";
+  counter-increment: item
+}
+
+.mw-content-ltr .mw-editsection, .mw-content-rtl .mw-content-ltr .mw-editsection {
+    margin-left: 1em;
+}
+
+.mw-editsection {
+    unicode-bidi: -moz-isolate;
+    unicode-bidi: -webkit-isolate;
+    unicode-bidi: isolate;
+}
+
+.mw-editsection, .mw-editsection-like {
+    font-size: small;
+    font-weight: normal;
+    margin-left: 1em;
+    vertical-align: baseline;
+    line-height: 1em;
+}
+
+.mw-editsection {
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.mw-editsection, .mw-editsection-like {
+    font-family: sans-serif;
+}
+
+.client-js .mw-content-ltr .mw-editsection-bracket:first-of-type, .client-js .mw-content-rtl .mw-editsection-bracket:not(:first-of-type) {
+    margin-right: 0.25em;
+    color: #54595d;
+}

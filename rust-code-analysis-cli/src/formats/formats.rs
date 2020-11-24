@@ -7,9 +7,12 @@ use std::str::FromStr;
 
 use rust_code_analysis::FuncSpace;
 
+use super::html;
+
 #[derive(Debug, Clone)]
 pub enum Format {
     Cbor,
+    Html,
     Json,
     Toml,
     Yaml,
@@ -17,7 +20,7 @@ pub enum Format {
 
 impl Format {
     pub fn all() -> &'static [&'static str] {
-        &["cbor", "json", "toml", "yaml"]
+        &["cbor", "html", "json", "toml", "yaml"]
     }
 
     pub fn dump_formats(
@@ -36,6 +39,10 @@ impl Format {
                     ErrorKind::Other,
                     "Cbor format cannot be printed to stdout",
                 )),
+                Format::Html => {
+                    let html_data = html::to_string(&space).unwrap();
+                    writeln!(stdout, "{}", html_data)
+                }
                 Format::Json => {
                     let json_data = if pretty {
                         serde_json::to_string_pretty(&space).unwrap()
@@ -57,6 +64,7 @@ impl Format {
         } else {
             let format_ext = match self {
                 Format::Cbor => ".cbor",
+                Format::Html => ".html",
                 Format::Json => ".json",
                 Format::Toml => ".toml",
                 Format::Yaml => ".yml",
@@ -83,6 +91,7 @@ impl Format {
             match self {
                 Format::Cbor => serde_cbor::to_writer(format_file, &space)
                     .map_err(|e| Error::new(ErrorKind::Other, e.to_string())),
+                Format::Html => html::to_writer(&mut format_file, &space),
                 Format::Json => {
                     if pretty {
                         serde_json::to_writer_pretty(format_file, &space)
@@ -113,6 +122,7 @@ impl FromStr for Format {
     fn from_str(format: &str) -> Result<Self, Self::Err> {
         match format {
             "cbor" => Ok(Format::Cbor),
+            "html" => Ok(Format::Html),
             "json" => Ok(Format::Json),
             "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
