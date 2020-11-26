@@ -181,13 +181,19 @@ fn compute_halstead_and_mi<'a, T: ParserTrait>(state: &mut State<'a>) {
 
 #[inline(always)]
 fn compute_averages<'a>(state: &mut State<'a>) {
+    let nom_functions = state.space.metrics.nom.functions() as usize;
+    let nom_closures = state.space.metrics.nom.closures() as usize;
     let nom_total = state.space.metrics.nom.total() as usize;
     // Cognitive average
     state.space.metrics.cognitive.finalize(nom_total);
     // Nexit average
     state.space.metrics.nexits.finalize(nom_total);
     // Nargs average
-    state.space.metrics.nargs.finalize(nom_total);
+    state
+        .space
+        .metrics
+        .nargs
+        .finalize(nom_functions, nom_closures);
 }
 
 fn finalize<'a, T: ParserTrait>(state_stack: &mut Vec<State<'a>>, diff_level: usize) {
