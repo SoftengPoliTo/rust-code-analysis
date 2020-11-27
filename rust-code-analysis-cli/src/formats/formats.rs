@@ -7,17 +7,20 @@ use std::str::FromStr;
 
 use rust_code_analysis::FuncSpace;
 
+use super::tabular;
+
 #[derive(Debug, Clone)]
 pub enum Format {
     Cbor,
     Json,
+    Tabular,
     Toml,
     Yaml,
 }
 
 impl Format {
     pub fn all() -> &'static [&'static str] {
-        &["cbor", "json", "toml", "yaml"]
+        &["cbor", "json", "tabular", "toml", "yaml"]
     }
 
     pub fn dump_formats(
@@ -25,6 +28,7 @@ impl Format {
         space: &FuncSpace,
         path: &PathBuf,
         output_path: &Option<PathBuf>,
+        columns: Option<usize>,
         pretty: bool,
     ) -> std::io::Result<()> {
         if output_path.is_none() {
@@ -44,6 +48,10 @@ impl Format {
                     };
                     writeln!(stdout, "{}", json_data)
                 }
+                Format::Tabular => {
+                    let tabular_data = tabular::MetricPrinter::new(columns).to_string().unwrap();
+                    writeln!(stdout, "{}", tabular_data)
+                }
                 Format::Toml => {
                     let toml_data = if pretty {
                         toml::to_string_pretty(&space).unwrap()
@@ -58,6 +66,7 @@ impl Format {
             let format_ext = match self {
                 Format::Cbor => ".cbor",
                 Format::Json => ".json",
+                Format::Tabular => ".txt",
                 Format::Toml => ".toml",
                 Format::Yaml => ".yml",
             };
@@ -92,6 +101,10 @@ impl Format {
                             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
                     }
                 }
+                Format::Tabular => {
+                    let tabular_data = tabular::MetricPrinter::new(columns).to_string().unwrap();
+                    format_file.write_all(tabular_data.as_bytes())
+                }
                 Format::Toml => {
                     let toml_data = if pretty {
                         toml::to_string_pretty(&space).unwrap()
@@ -114,6 +127,7 @@ impl FromStr for Format {
         match format {
             "cbor" => Ok(Format::Cbor),
             "json" => Ok(Format::Json),
+            "tabular" => Ok(Format::Tabular),
             "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
             format => Err(format!("{:?} is not a supported format", format)),

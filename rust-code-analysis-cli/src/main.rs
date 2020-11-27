@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 use std::{process, thread};
 use walkdir::{DirEntry, WalkDir};
 
-use formats::Format;
+use formats::formats::Format;
 
 use rust_code_analysis::*;
 
@@ -37,6 +37,7 @@ struct Config {
     output_format: Option<Format>,
     output: Option<PathBuf>,
     pretty: bool,
+    columns: Option<usize>,
     line_start: Option<usize>,
     line_end: Option<usize>,
     preproc_lock: Option<Arc<Mutex<PreprocResults>>>,
@@ -94,7 +95,7 @@ fn act_on_file(language: Option<LANG>, path: PathBuf, cfg: &Config) -> std::io::
     } else if cfg.metrics {
         if let Some(output_format) = &cfg.output_format {
             if let Some(space) = get_function_spaces(&language, source, &path, pr) {
-                output_format.dump_formats(&space, &path, &cfg.output, cfg.pretty)
+                output_format.dump_formats(&space, &path, &cfg.output, cfg.columns, cfg.pretty)
             } else {
                 Ok(())
             }
@@ -366,6 +367,13 @@ fn main() {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("columns")
+                .help("Number of columns used for tabular formatting")
+                .long("columns")
+                .default_value("")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("line_start")
                 .help("Line start")
                 .long("ls")
@@ -459,6 +467,12 @@ fn main() {
         std::cmp::max(2, num_cpus::get()) - 1
     };
 
+    let columns = if let Ok(n) = matches.value_of("columns").unwrap().parse::<usize>() {
+        Some(n)
+    } else {
+        None
+    };
+
     let line_start = if let Ok(n) = matches.value_of("line_start").unwrap().parse::<usize>() {
         Some(n)
     } else {
@@ -481,6 +495,7 @@ fn main() {
         output_format,
         pretty,
         output: output.clone(),
+        columns,
         line_start,
         line_end,
         preproc_lock: preproc_lock.clone(),

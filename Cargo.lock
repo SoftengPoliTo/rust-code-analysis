@@ -1543,6 +1543,7 @@ dependencies = [
  "clap",
  "crossbeam",
  "globset",
+ "num-format",
  "num_cpus",
  "regex",
  "rust-code-analysis",
