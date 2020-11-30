@@ -35,14 +35,10 @@ impl Format {
             let mut stdout = stdout.lock();
 
             match self {
-                Format::Cbor => Err(Error::new(
+                Format::Cbor | Format::Html => Err(Error::new(
                     ErrorKind::Other,
-                    "Cbor format cannot be printed to stdout",
+                    "This format cannot be printed to stdout, please specify an output directory",
                 )),
-                Format::Html => {
-                    let html_data = html::to_string(&space).unwrap();
-                    writeln!(stdout, "{}", html_data)
-                }
                 Format::Json => {
                     let json_data = if pretty {
                         serde_json::to_string_pretty(&space).unwrap()
@@ -62,15 +58,19 @@ impl Format {
                 Format::Yaml => writeln!(stdout, "{}", serde_yaml::to_string(&space).unwrap()),
             }
         } else {
+            let output_path = output_path.as_ref().unwrap();
+
+            if let Format::Html = self {
+                return html::write(&path, output_path, &space);
+            }
+
             let format_ext = match self {
                 Format::Cbor => ".cbor",
-                Format::Html => ".html",
                 Format::Json => ".json",
                 Format::Toml => ".toml",
                 Format::Yaml => ".yml",
+                _ => unreachable!(),
             };
-
-            let output_path = output_path.as_ref().unwrap();
 
             let mut file = path.as_path().file_name().unwrap().to_os_string();
             file.push(format_ext);
@@ -91,7 +91,6 @@ impl Format {
             match self {
                 Format::Cbor => serde_cbor::to_writer(format_file, &space)
                     .map_err(|e| Error::new(ErrorKind::Other, e.to_string())),
-                Format::Html => html::to_writer(&mut format_file, &space),
                 Format::Json => {
                     if pretty {
                         serde_json::to_writer_pretty(format_file, &space)
@@ -111,6 +110,7 @@ impl Format {
                 }
                 Format::Yaml => serde_yaml::to_writer(format_file, &space)
                     .map_err(|e| Error::new(ErrorKind::Other, e.to_string())),
+                _ => unreachable!(),
             }
         }
     }
