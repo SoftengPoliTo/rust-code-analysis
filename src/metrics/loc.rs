@@ -308,7 +308,6 @@ impl Loc for RustCode {
             | AssignmentExpression
             | CompoundAssignmentExpr
             | ReturnExpression
-            | ArrayExpression
             | TupleExpression
             | UnitExpression
             | IfExpression
@@ -598,6 +597,17 @@ mod tests {
     fn rust_no_parenthesized_expression_lloc() {
         check_metrics!(
             "let a = (42 + 0);",
+            "foo.rs",
+            RustParser,
+            loc,
+            [(lloc, 1, usize)]
+        );
+    }
+
+    #[test]
+    fn rust_no_array_expression_lloc() {
+        check_metrics!(
+            "let a = [0; 42];",
             "foo.rs",
             RustParser,
             loc,
