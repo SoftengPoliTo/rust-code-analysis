@@ -340,7 +340,9 @@ impl Loc for RustCode {
                         | WhileLetExpression
                         | ForExpression
                         | IfExpression
-                        | IfLetExpression,
+                        | IfLetExpression
+                        | ReturnExpression
+                        | AwaitExpression,
                     Block
                 ) == 0
                 {
@@ -681,6 +683,18 @@ mod tests {
         check_metrics!(
             "if foo() {} // +1
              if let Some(a) = foo() {} // +1",
+            "foo.rs",
+            RustParser,
+            loc,
+            [(lloc, 2, usize)]
+        );
+    }
+
+    #[test]
+    fn rust_function_in_return_lloc() {
+        check_metrics!(
+            "return foo();
+             await foo();",
             "foo.rs",
             RustParser,
             loc,
