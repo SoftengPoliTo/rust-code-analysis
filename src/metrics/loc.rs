@@ -308,7 +308,6 @@ impl Loc for RustCode {
             | AssignmentExpression
             | CompoundAssignmentExpr
             | ReturnExpression
-            | UnitExpression
             | IfExpression
             | IfLetExpression
             | WhileExpression
@@ -623,6 +622,11 @@ mod tests {
             loc,
             [(lloc, 1, usize)]
         );
+    }
+
+    #[test]
+    fn rust_no_unit_expression_lloc() {
+        check_metrics!("let a = ();", "foo.rs", RustParser, loc, [(lloc, 1, usize)]);
     }
 
     #[test]
