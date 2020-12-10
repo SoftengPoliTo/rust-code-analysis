@@ -322,8 +322,11 @@ impl Loc for RustCode {
             IndexExpression => {
                 if count_specific_ancestors!(
                     node,
-                    IndexExpression,
-                    SourceFile | FunctionItem | ClosureExpression
+                    IndexExpression
+                        | CompoundAssignmentExpr
+                        | AssignmentExpression
+                        | LetDeclaration,
+                    Block
                 ) == 0
                 {
                     stats.logical_lines += 1;
@@ -637,6 +640,19 @@ mod tests {
     #[test]
     fn rust_no_unit_expression_lloc() {
         check_metrics!("let a = ();", "foo.rs", RustParser, loc, [(lloc, 1, usize)]);
+    }
+
+    #[test]
+    fn rust_assignments_lloc() {
+        check_metrics!(
+            "a[0] = b[0] + c[1];
+             a[1] += b[0] + c[1];
+             let k = a[0];",
+            "foo.rs",
+            RustParser,
+            loc,
+            [(lloc, 3, usize)]
+        );
     }
 
     #[test]
