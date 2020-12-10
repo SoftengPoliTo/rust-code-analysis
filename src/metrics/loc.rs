@@ -328,7 +328,9 @@ impl Loc for RustCode {
                         | LetDeclaration
                         | WhileExpression
                         | WhileLetExpression
-                        | ForExpression,
+                        | ForExpression
+                        | IfExpression
+                        | IfLetExpression,
                     Block
                 ) == 0
                 {
@@ -637,6 +639,18 @@ mod tests {
             RustParser,
             loc,
             [(lloc, 3, usize)]
+        );
+    }
+
+    #[test]
+    fn rust_function_in_if_lloc() {
+        check_metrics!(
+            "if foo() {} // +1
+             if let Some(a) = foo() {} // +1",
+            "foo.rs",
+            RustParser,
+            loc,
+            [(lloc, 2, usize)]
         );
     }
 
