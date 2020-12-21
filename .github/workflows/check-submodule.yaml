@@ -1,0 +1,110 @@
+name: check-submodules
+
+on: [push, pull_request]
+
+jobs:
+  check-submodules:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 2 # Get only the previous commit to make the comparison
+        submodules: true
+
+    - name: Check submodules update
+      id: runCI
+      run: |
+        SUBMODULES=`git submodule--helper list | awk '{ print $4 }'`
+
+        RUN_CI="no"
+        for SUBMODULE in $SUBMODULES
+        do
+          git diff --exit-code HEAD^ $SUBMODULE
+          CHANGED=$? # Get git diff exit code
+          if [ $CHANGED -eq 1 ]
+          then
+             RUN_CI="yes"
+             NAME=$submodule
+             echo "::set-output name=submodule_name::$SUBMODULE"
+             break
+          fi
+        done
+        echo "::set-output name=run_ci::$RUN_CI"
+        echo "::set-output name=submodule_name::tree-sitter-javascript" # Remove this line!
+
+    - name: Install Rust stable
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Install Python 3.8
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.8'
+        architecture: 'x64'
+
+    - name: Install json-diff
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      env:
+        LINK: https://github.com/Luni-4/json-diff/releases/download
+        JSON_DIFF_VERSION: 0.0.1
+      run: |
+        curl -L "$LINK/v$JSON_DIFF_VERSION/json-diff-linux.tar.gz" |
+        tar xz -C $HOME/.cargo/bin
+
+    - name: Install json-minimal-tests
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      env:
+        LINK: https://github.com/Luni-4/json-minimal-tests/releases/download
+        JMT_VERSION: 0.0.1
+      run: |
+        curl -L "$LINK/v$JMT_VERSION/json-minimal-tests-linux.tar.gz" |
+        tar xz -C $HOME/.cargo/bin
+
+    - name: Download mozilla-central repository
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      env:
+        MOZILLA_CENTRAL_REPO: https://github.com/mozilla/gecko-dev
+      run: |
+        git clone --depth 1 -j8 $MOZILLA_CENTRAL_REPO $HOME/mozilla-central
+
+    - name: Compute metrics
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      run: |
+        ./check-submodule.py compute-ci-metrics -p $HOME/mozilla-central -l ${{ steps.runCI.outputs.submodule_name }}
+
+    - name: Compare metrics
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      run: |
+        ./check-submodule.py compare-metrics -l ${{ steps.runCI.outputs.submodule_name }}
+
+    - name: Count files in metrics directories
+      run: |
+        ls /tmp/${{ steps.runCI.outputs.submodule_name }}-old | wc -l
+        ls /tmp/${{ steps.runCI.outputs.submodule_name }}-new | wc -l
+
+    - name: Create artifacts
+      #if: steps.runCI.outputs.run_ci == 'yes'
+      id: artifactsId
+      run: |
+        COMPARE=/tmp/${{ steps.runCI.outputs.submodule_name }}-compare
+        ARTIFACTS="no"
+        if [ "$(ls -A $COMPARE)" ]; then
+            ARTIFACTS="yes"
+            zip -9 diffs-and-minimal-tests.zip $COMPARE
+        fi
+        echo "::set-output name=artifacts::$ARTIFACTS"
+
+    - name: Upload artifacts
+      if: steps.artifactsID.outputs.artifacts == 'yes'
+      #  steps.runCI.outputs.run_ci == 'yes' &&
+      #  steps.artifactsID.outputs.artifacts == 'yes'
+      uses: actions/upload-artifact@v2
+      with:
+        path: diffs-and-minimal-tests.zip
