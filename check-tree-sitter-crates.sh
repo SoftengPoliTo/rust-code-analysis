@@ -52,6 +52,8 @@ set -e
 #    exit 0
 #fi
 
+TREE_SITTER_CRATE="tree-sitter-mozcpp"
+
 # Install json minimal tests
 JMT_LINK="https://github.com/Luni-4/json-minimal-tests/releases/download"
 JMT_VERSION="0.1.4"

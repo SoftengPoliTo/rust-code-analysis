@@ -2,7 +2,7 @@
 
 # Checks out if a submodule has been updated
 #SUBMODULES=`git submodule--helper list | awk '{ print $4 }'`
-#RUN_CI="no"
+RUN_CI="no"
 #for SUBMODULE in $SUBMODULES
 #do
 #    git diff --exit-code HEAD^ $SUBMODULE
@@ -14,11 +14,11 @@
 #        break
 #    fi
 #done
-#
-## If no submodule has been updated, exit the script
-#if [ "$RUN_CI" = "no" ]; then
-#    exit 0
-#fi
+
+# If no submodule has been updated, exit the script
+if [ "$RUN_CI" = "no" ]; then
+    exit 0
+fi
 
 # Install json minimal tests
 JMT_LINK="https://github.com/Luni-4/json-minimal-tests/releases/download"
