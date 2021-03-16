@@ -4,53 +4,53 @@
 set -e
 
 # Get all tree-sitter crates from the analyzed branch Cargo.toml
-TS_CRATES=`grep "tree-sitter-*" Cargo.toml | tr -d ' '`
-
-# Disable/Enable CI flag
-RUN_CI="no"
-
-# Temporary master branch Cargo.toml filename
-MASTER_CARGO_TOML="master-cargo.toml"
-
-# Download master branch Cargo.toml and save it in a temporary file
-wget -LqO - https://raw.githubusercontent.com/mozilla/rust-code-analysis/master/Cargo.toml | tr -d ' ' > $MASTER_CARGO_TOML
-
-# For each tree-sitter crate from the analyzed branch Cargo.toml
-for TS_CRATE in $TS_CRATES
-do
-    # Get the name of the current crate
-    TS_CRATE_NAME=`echo $TS_CRATE | cut -f1 -d "="`
-
-    # Get the crate name from the master branch Cargo.toml
-    MASTER_TS_CRATE_NAME=`grep $TS_CRATE_NAME $MASTER_CARGO_TOML | head -n 1 | cut -f1 -d "="`
-
-    # If the current crate name is not present in master branch, skip to the next crate
-    if [ -z "$MASTER_TS_CRATE_NAME" ]
-    then
-        continue
-    fi
-
-    # Get the same crate from the master branch Cargo.toml
-    MASTER_TS_CRATE=`grep $TS_CRATE $MASTER_CARGO_TOML | head -n 1`
-
-    # If the current crate has been updated, save the crate name and break the loop
-    if [ -z "$MASTER_TS_CRATE" ]
-    then
-        # Enable CI flag
-        RUN_CI="yes"
-        # Name of tree-sitter crate
-        TREE_SITTER_CRATE=$TS_CRATE_NAME
-        break
-    fi
-done
-
-# Remove temporary master branch Cargo.toml file
-rm -rf $MASTER_CARGO_TOML
-
-# If any crates have been updated, exit the script
-if [ "$RUN_CI" = "no" ]; then
-    exit 0
-fi
+#TS_CRATES=`grep "tree-sitter-*" Cargo.toml | tr -d ' '`
+#
+## Disable/Enable CI flag
+#RUN_CI="no"
+#
+## Temporary master branch Cargo.toml filename
+#MASTER_CARGO_TOML="master-cargo.toml"
+#
+## Download master branch Cargo.toml and save it in a temporary file
+#wget -LqO - https://raw.githubusercontent.com/mozilla/rust-code-analysis/master/Cargo.toml | tr -d ' ' > $MASTER_CARGO_TOML
+#
+## For each tree-sitter crate from the analyzed branch Cargo.toml
+#for TS_CRATE in $TS_CRATES
+#do
+#    # Get the name of the current crate
+#    TS_CRATE_NAME=`echo $TS_CRATE | cut -f1 -d "="`
+#
+#    # Get the crate name from the master branch Cargo.toml
+#    MASTER_TS_CRATE_NAME=`grep $TS_CRATE_NAME $MASTER_CARGO_TOML | head -n 1 | cut -f1 -d "="`
+#
+#    # If the current crate name is not present in master branch, skip to the next crate
+#    if [ -z "$MASTER_TS_CRATE_NAME" ]
+#    then
+#        continue
+#    fi
+#
+#    # Get the same crate from the master branch Cargo.toml
+#    MASTER_TS_CRATE=`grep $TS_CRATE $MASTER_CARGO_TOML | head -n 1`
+#
+#    # If the current crate has been updated, save the crate name and break the loop
+#    if [ -z "$MASTER_TS_CRATE" ]
+#    then
+#        # Enable CI flag
+#        RUN_CI="yes"
+#        # Name of tree-sitter crate
+#        TREE_SITTER_CRATE=$TS_CRATE_NAME
+#        break
+#    fi
+#done
+#
+## Remove temporary master branch Cargo.toml file
+#rm -rf $MASTER_CARGO_TOML
+#
+## If any crates have been updated, exit the script
+#if [ "$RUN_CI" = "no" ]; then
+#    exit 0
+#fi
 
 # Install json minimal tests
 JMT_LINK="https://github.com/Luni-4/json-minimal-tests/releases/download"
